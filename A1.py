@@ -9,3 +9,5 @@ data_filter = [d for d in data if (d>300 and d<4000).all() ]
 plt.hist(data_filter, bins=200)
 #plt.yscale('log')
 plt.show()
+
+#%%
