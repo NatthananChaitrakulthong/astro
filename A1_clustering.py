@@ -45,29 +45,48 @@ plt.show()
 
 
 #%%
-
+ 
 import scipy.cluster.hierarchy as hcluster
 import seaborn as sns
 from itertools import cycle
-thresh = 5
+thresh = 3.5
 clusters = hcluster.fclusterdata(obj_idxs, thresh, criterion="distance")
 
-
 # plotting
+fig, (ax1, ax2, ax3) = plt.subplots(1,3)
+ax1.imshow(X)
+ax2.imshow(X1)
+ax3.imshow(X1)
 sns.scatterplot(*np.transpose(obj_idxs), hue=clusters, palette='Paired', s=5, legend=False)
 plt.axis("equal")
 title = "threshold: %f, number of clusters: %d" % (thresh, len(set(clusters)))
 plt.title(title)
 plt.show()
 
+#%%
 
+def galaxy_magnitude(cluster_labels, obj_indices):
+    pixval_list = []
+    pixval_sum = []
+    for n in (set(cluster_labels)):
+        pixvals = []
+        ind = np.where(cluster_labels==n)
+        pix_pos = obj_indices[ind]
+        for pos in pix_pos:
+            x = pos[0]
+            y = pos[1]
+            pixvals.append(X1[y][x])
+        pixval_list.append(pixvals)
+        pixval_sum.append(sum(pixvals))
+    
+    return pixval_list,pixval_sum
 
-
-
+l,s = galaxy_magnitude(clusters,obj_idxs)
+print(s)
 
 #%%
 
-#IRRELEVANT CODES
+#********IRRELEVANT CODES********
 
 
 from sklearn.cluster import KMeans
