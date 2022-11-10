@@ -13,14 +13,14 @@ data_backg = [d for d in data_flat if (d>300 and d<4000).all()]
 data_filter = [d for d in data_flat if (d>7000).all()]
 
 #%%
-plt.imshow(data,cmap='plasma')
+plt.imshow(data)
 plt.show()
 #%%
-plt.hist(data_backg, bins=1000)
-plt.show()
+#plt.hist(data_backg, bins=1000)
+#plt.show()
 #%%
-plt.hist(data_filter, bins=200)
-plt.show()
+#plt.hist(data_filter, bins=200)
+#plt.show()
 #%%
 
 counts, edges, patches = plt.hist(data_backg, bins=1000)
@@ -99,9 +99,24 @@ artf_idxs.append(mask(data_clean,2698,2835,920,1020,obj_lowerbound))
 artf_idxs.append(mask(data_clean,2283,2337,2100,2160,obj_lowerbound))
 artf_idxs.append(mask(data_clean,3700,3806,2100,2170,obj_lowerbound))
 artf_idxs.append(mask(data_clean,4075,4117,530,596,obj_lowerbound))
-artf_idxs.append(mask(data_clean,0,4610,1015,1735))
-artf_idxs.append(mask(data_clean,0,4610,1420,1457,obj_lowerbound)) #long rectangle for the giant star streak
-artf_idxs.append(mask(data_clean,3000,3400,1200,1700,obj_lowerbound))
+artf_idxs.append(mask(data_clean,4320,4408,1100,1660,obj_lowerbound))
+artf_idxs.append(mask(data_clean,557,597,1752,1790,obj_lowerbound))
+
+
+#artf_idxs.append(mask(data_clean,0,4610,1015,1735))
+
+artf_idxs.append(mask(data_clean,0,4610,1410,1457,obj_lowerbound)) #long rectangle for the giant star streak
+artf_idxs.append(mask(data_clean,4010,4053,1410,1475,obj_lowerbound)) #long rectangle for the giant star streak
+artf_idxs.append(mask(data_clean,2900,3500,1100,1800,obj_lowerbound))
+artf_idxs.append(mask(data_clean,0,10,967,1720,obj_lowerbound))
+artf_idxs.append(mask(data_clean,6,55,1628,1708,obj_lowerbound))
+artf_idxs.append(mask(data_clean,10,25,1328,1505,obj_lowerbound))
+artf_idxs.append(mask(data_clean,115,175,1290,1540,obj_lowerbound))
+artf_idxs.append(mask(data_clean,210,320,1386,1482,obj_lowerbound))
+artf_idxs.append(mask(data_clean,310,356,1010,1704,obj_lowerbound))
+artf_idxs.append(mask(data_clean,422,457,1100,1653,obj_lowerbound))
+
+
 #print(artf_idxs)
 #%%
 from matplotlib import colors
@@ -115,9 +130,7 @@ hdulist= fits.open('A1_mosaic.fits')
 headers = hdulist[0].header
 data = hdulist[0].data
 
-from findpeaks import findpeaks
-
-X=data_clean.copy()[200:-1000,200:-1000]
+X=data_clean.copy()[-800:-200,200:-200]
 
 fig, (ax1, ax2) = plt.subplots(1,2)
 
@@ -131,7 +144,7 @@ X1=X.copy()
 obj_idxs = []
 for j,row in enumerate(X1):
     for i,pixval in enumerate(row):
-        if pixval < 3481:
+        if pixval <= obj_lowerbound:
             X1[j][i] = 0
         else:
             obj_idxs.append([i,j])
@@ -145,17 +158,17 @@ plt.show()
 #%%
  
 import scipy.cluster.hierarchy as hcluster
-import seaborn as sns
-from itertools import cycle
-thresh = 3.5
+
+thresh = 2.5
 clusters = hcluster.fclusterdata(obj_idxs, thresh, criterion="distance")
 
+#%%
 # plotting
 fig, (ax1, ax2, ax3) = plt.subplots(1,3)
 ax1.imshow(X)
 ax2.imshow(X1)
 ax3.imshow(X1)
-sns.scatterplot(*np.transpose(obj_idxs), hue=clusters, palette='Paired', s=5, legend=False)
+sns.scatterplot(*np.transpose(obj_idxs), hue=clusters, palette = 'Paired', s=5, legend=False, ax=ax3)
 plt.axis("equal")
 title = "threshold: %f, number of clusters: %d" % (thresh, len(set(clusters)))
 plt.title(title)
@@ -176,19 +189,57 @@ def galaxy_magnitude(cluster_labels, obj_indices):
             x = pos[0]
             y = pos[1]
             pixvals.append(X1[y][x])
+        #if len(pixval_list) > 1:
         pixval_list.append(pixvals)
         pixval_sum.append(sum(pixvals))
         pixval_max.append(max(pixvals))
         pixval_max_idxs.append(pix_pos[np.where(pixvals == max(pixvals))])
-        
     
     return pixval_list, pixval_sum, pixval_max, pixval_max_idxs
 
-l,s, m, mi = galaxy_magnitude(clusters,obj_idxs)
+l, s, m, mi = galaxy_magnitude(clusters,obj_idxs)
 print(s)
 
+#%%
+
+ZPinst  = 2.530E+01 
+magi = [-2.5*np.log10(counts/ZPinst) for counts in s]
+
+#m = ZPinst + np.array(magi)
+
+f,axs = plt.subplots(1,2)
+
+# histogram of counts of galaxies with different magnitude 
+c, e, p = axs[0].hist(magi,bins=100)
+cen = 0.5*(e[1:]+ e[:-1])
+axs[0].set_ylabel('Counts')
+axs[0].set_xlabel('m')
+
+# Plot of N(m) against m
+Mag_list = np.arange(min(magi),max(magi)+0.001,0.001)
+Nm = [len([mag for mag in magi if mag<Mag]) for Mag in Mag_list]
 
 
+axs[1].plot(Mag_list, np.log10(Nm))
+axs[1].set_ylabel('logN(m)')
+axs[1].set_xlabel('m')
+plt.yscale('linear')
+plt.show()
+#y = np.log()
+
+#%%
+import pandas as pd 
+d1 = {'Clluster no.':np.arange(1,max(clusters)+1) , 'Pixel Values' : l
+     , 'Total Brightness (sum)': s, 'Brightness Pixel Value': m, 'Brightest Pixel Coordinate' : mi,'Magnitude': magi}
+
+df1 = pd.DataFrame(data=d1)
+display(df1)
+df1.to_csv('Cluster_800200_200200.csv')
+
+d2 = {'Magnitude (Step of 0.001)':Mag_list , 'N(m)' : Nm}
+df2 = pd.DataFrame(data=d2)
+display(df1)
+df2.to_csv('Magnitude-Counts_800200_200200.csv')
 
 #%%
 
